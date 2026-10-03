@@ -1,0 +1,156 @@
+<mujoco model="rov">
+  <compiler angle="degree" autolimits="true"/>
+
+  <option timestep="0.005" density="1000" viscosity="0.0009" integrator="implicitfast" gravity="0 0 0">
+    <flag contact="enable"/>
+  </option>
+
+  <visual>
+    <global offwidth="1280" offheight="720"/>
+    <!-- bright ambient fill: a pool is lit by light scattering off the water and
+         the white walls, not by one lamp, and the default ambient is nearly black -->
+    <headlight ambient="0.30 0.33 0.35" diffuse="0.25 0.25 0.25" specular="0.08 0.08 0.08"/>
+  </visual>
+
+  <default>
+    <geom solref="0.01 1" solimp="0.9 0.95 0.001"/>
+    <default class="frame">
+      <geom type="box" material="frame_mat"  />
+    </default>
+    <!-- thruster: a single short, stubby cylinder; axis is local +z (the thrust axis) -->
+    <default class="thruster_body">
+      <geom type="cylinder" size="0.03375 0.0375" material="thruster_mat"  />
+    </default>
+    <default class="thruster_site">
+      <site type="cylinder" size="0.004 0.012" rgba="1 0.85 0.1 0.9" group="1"/>
+    </default>
+    <!-- 4" schedule-40 PVC: 0.055 m outer radius. Fittings are a size up. -->
+    <default class="pvc_pipe">
+      <geom type="cylinder" size="0.055" material="pvc_mat"/>
+    </default>
+    <default class="pvc_fitting">
+      <geom type="cylinder" size="0.068" material="pvc_fitting_mat"/>
+    </default>
+  </default>
+
+  <asset>
+    <!-- pale aqua fading to near-white, as if looking up through pool water -->
+    <texture type="skybox" builtin="gradient" rgb1="0.16 0.36 0.48" rgb2="0.38 0.62 0.70" width="256" height="256"/>
+    <!-- glazed pool tile: two close blues so the grid reads without being loud -->
+    <texture name="seabed_tex" type="2d" builtin="checker" rgb1="0.60 0.81 0.86" rgb2="0.71 0.88 0.91" width="300" height="300"/>
+    <material name="seabed_mat" texture="seabed_tex" texrepeat="20 20" reflectance="0.25"/>
+
+    <material name="frame_mat" rgba="0.55 0.75 0.87 1"/>
+    <material name="baseplate_mat" rgba="0.78 0.78 0.78 1"/>
+    <material name="thruster_mat" rgba="0.12 0.25 0.6 1"/>
+    <material name="electronics_mat" rgba="0.35 0.35 0.38 1"/>
+    <material name="hatch_mat" rgba="0.62 0.72 0.8 1"/>
+
+    <!-- weathered white PVC, with slightly greyer fittings -->
+    <material name="pvc_mat" rgba="0.90 0.90 0.86 1" specular="0.3" shininess="0.4"/>
+    <material name="pvc_fitting_mat" rgba="0.78 0.79 0.76 1" specular="0.3" shininess="0.4"/>
+  </asset>
+
+  <worldbody>
+    <!-- directional, not the default spotlight: a spot light's cos^10 cone (cutoff
+         45, exponent 10) put a 14x hot spot on the floor directly below it -->
+    <light directional="true" dir="-0.3 -0.4 -1" diffuse="0.55 0.55 0.55" specular="0.1 0.1 0.1"/>
+    <geom name="seabed" type="plane" pos="0 0 -3" size="5 5 0.1" material="seabed_mat"/>
+
+    <!-- ================= PVC pipe run on the seabed =================
+         A static inspection target: two horizontal runs joined by an elbow,
+         then a second elbow into a short vertical riser with a flange.
+         Pipe axis sits one radius (0.055) above the seabed plane at z = -3. -->
+    <body name="pvc_pipe_run" pos="0 0 0">
+      <geom name="pvc_run_x" class="pvc_pipe" fromto="-1.40 -0.90 -2.945  1.20 -0.90 -2.945"/>
+      <geom name="pvc_run_y" class="pvc_pipe" fromto=" 1.20 -0.90 -2.945  1.20  0.60 -2.945"/>
+      <geom name="pvc_riser" class="pvc_pipe" fromto=" 1.20  0.60 -2.945  1.20  0.60 -2.250"/>
+
+      <!-- elbows: spheres at the two corners hide the seams -->
+      <geom name="pvc_elbow_1" type="sphere" size="0.068" pos="1.20 -0.90 -2.945" material="pvc_fitting_mat"/>
+      <geom name="pvc_elbow_2" type="sphere" size="0.068" pos="1.20  0.60 -2.945" material="pvc_fitting_mat"/>
+
+      <!-- slip couplings part way along each run -->
+      <geom name="pvc_coupling_1" class="pvc_fitting" fromto="-0.60 -0.90 -2.945  -0.44 -0.90 -2.945"/>
+      <geom name="pvc_coupling_2" class="pvc_fitting" fromto=" 0.44 -0.90 -2.945   0.60 -0.90 -2.945"/>
+      <geom name="pvc_coupling_3" class="pvc_fitting" fromto=" 1.20 -0.20 -2.945   1.20 -0.04 -2.945"/>
+
+      <!-- capped open end, and a flange on top of the riser -->
+      <geom name="pvc_end_cap" class="pvc_fitting" fromto="-1.40 -0.90 -2.945  -1.24 -0.90 -2.945"/>
+      <geom name="pvc_flange" type="cylinder" size="0.105 0.015" pos="1.20 0.60 -2.235" material="pvc_fitting_mat"/>
+    </body>
+
+    <body name="base_link" pos="0 0 0">
+      <freejoint name="root"/>
+      <!-- Displaced volume of the geoms is 7.05e-3 m^3 -> 69.1 N of buoyancy at
+           density 1000. Mass is set just under the 7.05 kg neutral point so the
+           vehicle is slightly positively buoyant and surfaces on power loss. -->
+      <inertial pos="0 0 0" mass="6.9" diaginertia="0.083 0.138 0.193"/>
+
+      <!-- ================= structure ================= -->
+      <geom name="top_plate" class="frame" pos="0 0 0.075" size="0.190 0.165 0.005" material="frame_mat"/>
+      <geom name="bottom_plate" class="frame" pos="0 0 -0.075" size="0.190 0.165 0.005" material="baseplate_mat"/>
+      <!-- forward-looking camera on the front face of the frame -->
+      <camera name="front" pos="0.19 0 0.02" xyaxes="0 -1 0  0 0 1" fovy="70"/>
+
+      <!-- downward-looking (seabed) camera under the bottom plate -->
+      <camera name="down" pos="0 0 -0.082" xyaxes="0 -1 0  1 0 0" fovy="60"/>
+
+      <!-- recessed square hatch on the top plate -->
+      <geom name="hatch_rim" class="frame" pos="0 0 0.081" size="0.085 0.085 0.002" material="electronics_mat"/>
+      <geom name="hatch_lid" class="frame" pos="0 0 0.083" size="0.068 0.068 0.002" material="hatch_mat"/>
+
+      <!-- electronics enclosure slung under the top plate, on a post to the base plate -->
+      <geom name="enclosure" class="frame" pos="0 0 0.028" size="0.075 0.075 0.042" material="electronics_mat"/>
+      <geom name="center_post" class="frame" pos="0 0 -0.032" size="0.032 0.032 0.038" material="electronics_mat"/>
+
+      <!-- ================= thrusters =================
+           8 identical short cylinders in a pinwheel: at each corner the in-plane axis is
+           the outward radial direction rotated 120 deg about z (the earlier 30 deg swept
+           a further 90 deg), the same sense everywhere so the spiral is preserved; then
+           tilted 20 deg up on the top plate / down on the bottom plate.
+           Each unit's local +z is its thrust axis. -->
+
+      <!-- top plate, tilted up -->
+      <geom name="thr_TFL" class="thruster_body" pos="0.150 0.125 0.075" zaxis="-0.9077 0.2432 0.342"/>
+      <site name="site_TFL" class="thruster_site" pos="0.150 0.125 0.075" zaxis="-0.9077 0.2432 0.342"/>
+
+      <geom name="thr_TFR" class="thruster_body" pos="0.150 -0.125 0.075" zaxis="0.2432 0.9077 0.342"/>
+      <site name="site_TFR" class="thruster_site" pos="0.150 -0.125 0.075" zaxis="0.2432 0.9077 0.342"/>
+
+      <geom name="thr_TBR" class="thruster_body" pos="-0.150 -0.125 0.075" zaxis="0.9077 -0.2432 0.342"/>
+      <site name="site_TBR" class="thruster_site" pos="-0.150 -0.125 0.075" zaxis="0.9077 -0.2432 0.342"/>
+
+      <geom name="thr_TBL" class="thruster_body" pos="-0.150 0.125 0.075" zaxis="-0.2432 -0.9077 0.342"/>
+      <site name="site_TBL" class="thruster_site" pos="-0.150 0.125 0.075" zaxis="-0.2432 -0.9077 0.342"/>
+
+      <!-- bottom plate, tilted down -->
+      <geom name="thr_BFL" class="thruster_body" pos="0.150 0.125 -0.075" zaxis="-0.9077 0.2432 -0.342"/>
+      <site name="site_BFL" class="thruster_site" pos="0.150 0.125 -0.075" zaxis="-0.9077 0.2432 -0.342"/>
+
+      <geom name="thr_BFR" class="thruster_body" pos="0.150 -0.125 -0.075" zaxis="0.2432 0.9077 -0.342"/>
+      <site name="site_BFR" class="thruster_site" pos="0.150 -0.125 -0.075" zaxis="0.2432 0.9077 -0.342"/>
+
+      <geom name="thr_BBR" class="thruster_body" pos="-0.150 -0.125 -0.075" zaxis="0.9077 -0.2432 -0.342"/>
+      <site name="site_BBR" class="thruster_site" pos="-0.150 -0.125 -0.075" zaxis="0.9077 -0.2432 -0.342"/>
+
+      <geom name="thr_BBL" class="thruster_body" pos="-0.150 0.125 -0.075" zaxis="-0.2432 -0.9077 -0.342"/>
+      <site name="site_BBL" class="thruster_site" pos="-0.150 0.125 -0.075" zaxis="-0.2432 -0.9077 -0.342"/>
+
+      <camera name="tracking" mode="trackcom" pos="0.8 -0.8 0.5" xyaxes="0.7 0.7 0 -0.3 0.3 0.9"/>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <!-- positive ctrl pushes the vehicle along that thruster's +z (cylinder) axis -->
+    <motor name="thruster_TFL" site="site_TFL" gear="0 0 40 0 0 0" ctrlrange="-1 1"/>
+    <motor name="thruster_TFR" site="site_TFR" gear="0 0 40 0 0 0" ctrlrange="-1 1"/>
+    <motor name="thruster_TBR" site="site_TBR" gear="0 0 40 0 0 0" ctrlrange="-1 1"/>
+    <motor name="thruster_TBL" site="site_TBL" gear="0 0 40 0 0 0" ctrlrange="-1 1"/>
+
+    <motor name="thruster_BFL" site="site_BFL" gear="0 0 40 0 0 0" ctrlrange="-1 1"/>
+    <motor name="thruster_BFR" site="site_BFR" gear="0 0 40 0 0 0" ctrlrange="-1 1"/>
+    <motor name="thruster_BBR" site="site_BBR" gear="0 0 40 0 0 0" ctrlrange="-1 1"/>
+    <motor name="thruster_BBL" site="site_BBL" gear="0 0 40 0 0 0" ctrlrange="-1 1"/>
+  </actuator>
+</mujoco>

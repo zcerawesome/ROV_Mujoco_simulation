@@ -1,0 +1,1 @@
+python3 controller.py & python3 Main.py
