@@ -1,0 +1,10 @@
+mujoco>=3.1
+numpy
+pillow
+mediapy
+imageio-ffmpeg       # ffmpeg binary for mediapy when the system has none
+opencv-python        # cv_processor / controller.py camera window
+matplotlib           # straight_line_test.py plots
+pytest
+# only for controller.py --goal spin (live OAK-D IMU):
+# depthai

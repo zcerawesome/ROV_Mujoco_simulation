@@ -1,0 +1,70 @@
+--- controller.cpp	2026-10-14 20:01:20.074076480 -0400
++++ controller.cpp	2026-10-14 20:01:34.141422717 -0400
+@@ -1,14 +1,23 @@
++// Vendored from purduerov/X19-Core, branch depth_control (db2be30):
++//   nodes/cpp/depth_control/controller.cpp
++// Changes from upstream are marked "SIM FIX" (see upstream_fixes.patch).
+ #include "controller.hpp"
+ 
+-#define MAX(a, b)
+-
+ double Controller::compute(double measurement, double dt) {
+   double error = target - measurement;
+-  double p = weights.k_p;
++
++  // SIM FIX: upstream had `double p = weights.k_p;`, i.e. a constant output
++  // that ignores the error, so P control never responded to depth.
++  double p = weights.k_p * error;
+ 
+   integral += error * dt;
+   double i = weights.k_i * integral;
+ 
++  // SIM FIX: last_error starts at 0, so the first derivative was
++  // (error - 0) / dt -- a full-scale "derivative kick" on enable.
++  if (num_items == 0) {
++    last_error = error;
++  }
+   double derivative = (error - last_error) / dt;
+   double d = weights.k_d * derivative;
+ 
+@@ -23,6 +32,7 @@
+   }
+ 
+   last_error = error;
++  num_items++;
+ 
+   return output;
+ }
+@@ -32,6 +42,13 @@
+ }
+ 
+ void Controller::record_measurement(double measurement) {
++  // SIM FIX: moving_avg starts at 0, so without seeding the filter the
++  // first few outputs think the ROV is at the surface and dive hard.
++  if (!has_measurement) {
++    moving_avg = measurement;
++    has_measurement = true;
++    return;
++  }
+   // s_t     = \alpha    * x_t         + (1 - \alpha)    * s_{t-1}
+   moving_avg = EMA_Alpha * measurement + (1 - EMA_Alpha) * moving_avg;
+ }
+--- controller.hpp	2026-10-14 20:01:20.074076480 -0400
++++ controller.hpp	2026-10-14 20:01:34.180380611 -0400
+@@ -1,3 +1,6 @@
++// Vendored from purduerov/X19-Core, branch depth_control (db2be30):
++//   nodes/cpp/depth_control/controller.hpp
++// Changes from upstream are marked "SIM FIX" (see upstream_fixes.patch).
+ #pragma once
+ 
+ #define MIN_OUTPUT -1.0
+@@ -28,6 +31,9 @@
+ 
+   int num_items = 0;
+ 
++  // SIM FIX: seeds the moving average with the first sample
++  bool has_measurement = false;
++
+   Controller(Weights w) : weights(w) {};
+   double compute(double measurement, double dt);
+   double compute_filtered(double dt);

@@ -1,9 +1,37 @@
 <mujoco model="rov">
   <compiler angle="degree" autolimits="true"/>
 
-  <option timestep="0.005" density="1000" viscosity="0.0009" integrator="implicitfast" gravity="0 0 0">
+  <!-- Real gravity. The water itself (buoyancy, drag, current) is applied by
+       simulation.py from the custom numerics below, so MuJoCo's own fluid
+       model is off: it has no buoyancy, and its single equivalent-inertia-box
+       drag let the vehicle reach 2.4 m/s surge and 18 rad/s yaw. -->
+  <option timestep="0.005" density="0" viscosity="0" integrator="implicitfast" gravity="0 0 -9.81">
     <flag contact="enable"/>
   </option>
+
+  <custom>
+    <numeric name="water_density" data="1000"/>
+    <!-- hydrodynamic damping (Fossen), body frame, about the CoM:
+         F = -(D_lin * v + D_quad * |v| * v) on x, y, z, roll, pitch, yaw.
+         D_quad is sized so full authority on each axis reaches roughly
+         1.4 m/s surge, 1.3 m/s sway, 1.0 m/s heave, 3 rad/s roll/pitch and
+         2.5 rad/s yaw, typical of a ~7 kg T200 vehicle; D_lin is the small
+         skin-friction term that dominates when creeping. -->
+    <numeric name="damping_linear" data="5 5 6 0.3 0.3 0.5"/>
+    <numeric name="damping_quadratic" data="79 92 109 2.1 2.25 7.7"/>
+    <!-- displaced volume of the vehicle (m^3); see the note on base_link's mass -->
+    <numeric name="buoyancy_volume" data="7.05e-3"/>
+    <!-- centre of buoyancy relative to the CoM (body frame, m). Above the CoM,
+         so the vehicle rights itself in roll and pitch like the real frame,
+         whose foam/enclosure sits high and batteries/tools sit low. -->
+    <numeric name="cob_offset" data="0 0 0.02"/>
+    <!-- vertical extent of the hull, for partial buoyancy when breaching (m) -->
+    <numeric name="hull_height" data="0.17"/>
+    <!-- T200-style thrusters: reverse thrust is weaker than forward, and the
+         prop takes a moment to spin up -->
+    <numeric name="thruster_reverse_ratio" data="0.78"/>
+    <numeric name="thruster_time_constant" data="0.08"/>
+  </custom>
 
   <visual>
     <global offwidth="1280" offheight="720"/>
@@ -55,7 +83,7 @@
     <!-- directional, not the default spotlight: a spot light's cos^10 cone (cutoff
          45, exponent 10) put a 14x hot spot on the floor directly below it -->
     <light directional="true" dir="-0.3 -0.4 -1" diffuse="0.55 0.55 0.55" specular="0.1 0.1 0.1"/>
-    <geom name="seabed" type="plane" pos="0 0 -3" size="5 5 0.1" material="seabed_mat"/>
+    <geom name="seabed" type="plane" pos="0 0 -3" size="12 12 0.1" material="seabed_mat"/>
 
     <!-- ================= PVC pipe run on the seabed =================
          A static inspection target: two horizontal runs joined by an elbow,
@@ -80,7 +108,8 @@
       <geom name="pvc_flange" type="cylinder" size="0.105 0.015" pos="1.20 0.60 -2.235" material="pvc_fitting_mat"/>
     </body>
 
-    <body name="base_link" pos="0 0 0">
+    <!-- the water surface is z = 0 (depth is measured down from it); starts 0.5 m down -->
+    <body name="base_link" pos="0 0 -0.5">
       <freejoint name="root"/>
       <!-- Displaced volume of the geoms is 7.05e-3 m^3 -> 69.1 N of buoyancy at
            density 1000. Mass is set just under the 7.05 kg neutral point so the
@@ -137,9 +166,19 @@
       <geom name="thr_BBL" class="thruster_body" pos="-0.150 0.125 -0.075" zaxis="-0.2432 -0.9077 -0.342"/>
       <site name="site_BBL" class="thruster_site" pos="-0.150 0.125 -0.075" zaxis="-0.2432 -0.9077 -0.342"/>
 
+      <!-- IMU + pressure sensor mount, at the electronics enclosure -->
+      <site name="imu" pos="0 0 0.028" size="0.01" rgba="1 0 0 0" group="3"/>
+
       <camera name="tracking" mode="trackcom" pos="0.8 -0.8 0.5" xyaxes="0.7 0.7 0 -0.3 0.3 0.9"/>
     </body>
   </worldbody>
+
+  <sensor>
+    <framequat name="imu_quat" objtype="site" objname="imu"/>
+    <gyro name="imu_gyro" site="imu"/>
+    <accelerometer name="imu_accel" site="imu"/>
+    <framepos name="pressure_pos" objtype="site" objname="imu"/>
+  </sensor>
 
   <actuator>
     <!-- positive ctrl pushes the vehicle along that thruster's +z (cylinder) axis -->

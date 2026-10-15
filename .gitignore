@@ -1,3 +1,6 @@
 .venv
 .claude
 *__pycache__
+.pytest_cache
+rov_core/build/
+results/*.mp4
