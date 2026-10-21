@@ -1,0 +1,4 @@
+[submodule "core"]
+	path = core
+	url = https://github.com/adarsh-siva/X19-Core.git
+	branch = sim-straight-line

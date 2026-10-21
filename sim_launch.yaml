@@ -1,0 +1,14 @@
+# Simulated ROV + X19-Core nodes on one machine, over ZeroMQ.
+# Started by ./run.sh with core/scripts/launch.py; commands run from core/.
+nodes:
+  - name: "sim"
+    cmd: "$PYTHON ../sim_bridge.py $SIM_ARGS"
+
+  - name: "depth_control"
+    cmd: "build/depth_control"
+
+  - name: "thruster_control"
+    cmd: "build/thruster_control"
+
+  - name: "straight_line"
+    cmd: "build/straight_line $STRAIGHT_LINE_ARGS"

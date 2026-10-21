@@ -37,7 +37,15 @@ import mujoco as mj
 import mediapy as media
 from PIL import Image
 from movement_sim import Movement
-from rov_core.thruster_control import quat_to_rpy
+
+
+def quat_to_rpy(q):
+    """(roll, pitch, yaw) in radians, ZYX convention, from (w, x, y, z)."""
+    w, x, y, z = np.asarray(q, dtype=float) / np.linalg.norm(q)
+    roll = np.arctan2(2 * (w * x + y * z), 1 - 2 * (x * x + y * y))
+    pitch = np.arcsin(np.clip(2 * (w * y - z * x), -1.0, 1.0))
+    yaw = np.arctan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z))
+    return np.array([roll, pitch, yaw])
 
 # The anaconda ffmpeg on PATH (4.3, openh264-only) fails to encode h264;
 # point mediapy at the system ffmpeg (6.1, libx264) instead.
