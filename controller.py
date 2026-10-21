@@ -10,15 +10,15 @@ from enum import Enum
 from PIL import Image
 
 import cv_processor as cvp
-from imu import track
 from movement_sim import Movement
 from behavior.spin import Spin
 
 class Goals(Enum):
     SPIN=1,
     SPIN_AROUND=2
+    NOTHING = 3
 
-GOAL = Goals.SPIN
+GOAL = Goals.NOTHING
 
 class Controller:
     """TCP server. simulation.py connects to this as a client. Each exchange
@@ -85,22 +85,13 @@ class Controller:
 
 
 if __name__ == "__main__":
-    # IMU source for track.get_pose(): None = live OAK-D camera, or a path to a
-    # Test A CSV log to replay in real time (e.g. "imu/imu_test_a.csv").
-    IMU_SOURCE = None
-
     controller = Controller()
-    # First call starts the IMU stream so it calibrates while we wait for the sim.
-    track.get_pose(IMU_SOURCE)
     controller.start_server()
 
     # Fixed forward-drive command, sent automatically every step.
-    MOVEMENT = (0, 0, 0, 0, 0, 0.5)
+    MOVEMENT = (0, 0, 0, 0, 0, 0)
 
     print("Sending movement automatically (Ctrl+C to quit)")
-    video = []
-    start_time = time.time()
-    spin = Spin()
     try:
         while True:
             controller.send_movement(*MOVEMENT)
@@ -108,25 +99,6 @@ if __name__ == "__main__":
             if frames is None:
                 print("simulation disconnected")
                 break
-            pose = track.get_pose(IMU_SOURCE)
-            if pose.calibrated:
-                x, y, z = pose.position
-                roll, pitch, yaw = pose.rotation
-                # print(f"\rpos=({x:+.2f} {y:+.2f} {z:+.2f}) m  "
-                #       f"rot=({roll:+.1f} {pitch:+.1f} {yaw:+.1f}) deg", end="", flush=True)
-
-                if GOAL == Goals.SPIN:
-                    spin.current_pos(x, y, z, roll, pitch, yaw)
-                    MOVEMENT = spin.current_move()
-                    print(MOVEMENT)
-                    depthai_camera = track.get_frame()
-                    if not spin.done():
-                        video.append(cvp.encode_jpeg(depthai_camera))
-                    elif not spin.task_complete:
-                        elapsed = time.time() - start_time
-                        fps = len(video) / elapsed if video and elapsed > 0 else 30.0
-                        cvp.save_video(video, 'sim.mp4', fps=fps)
-                        spin.complete_task()
             cvp.show("front", frames["front"], bgr=False)
     except KeyboardInterrupt:
         pass

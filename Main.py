@@ -12,6 +12,6 @@ xml_path = abspath
 print("Creating simulation environment")
 base = MuJoCoBase(xml_path, controller_host="localhost")
 
-print("Connected. Running headless, driven by controller.py's movement commands...")
+print("Connected. Driven by controller.py's MOVEMENT (q/Esc quits)...")
 base.run_networked()
 base.close()
