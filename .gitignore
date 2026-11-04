@@ -1,3 +1,6 @@
 .venv
 .claude
 *__pycache__
+pipe_detector/data*/
+pipe_detector/runs/
+pipe_detector/*.log

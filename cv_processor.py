@@ -65,6 +65,20 @@ def process_pipe(frame):
 
     show("meta", metamorphasis)
 
+_detector = None
+
+def detect_pipe(frame, display=True):
+    """Learned alternative to process_pipe (see pipe_detector/): returns None,
+    or a dict with the pipe's bounding box, score, centre and size."""
+    global _detector
+    if _detector is None:
+        from pipe_detector.detector import PipeDetector
+        _detector = PipeDetector()
+    det = _detector.detect(frame)
+    if display:
+        show('pipe', _detector.draw(frame, det), bgr=False)
+    return det
+
 def encode_jpeg(frame_rgb, quality=80):
     """Compress an RGB frame to JPEG bytes, for cheap accumulation in memory
     (~tens of KB vs. ~1.5MB for a raw 960x540 array) while a long capture is

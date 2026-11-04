@@ -1,0 +1,49 @@
+<!-- Training scene for the pipe detector: the unchanged ROV/pipe model, plus
+     things that must NOT be called a pipe. generate.py moves, recolours and
+     hides these per sample; their poses here are just placeholders. -->
+<mujoco model="rov_pipe_training">
+  <include file="../models/rov.xml"/>
+
+  <asset>
+    <!-- alternative seabeds, swapped onto the seabed geom per sample:
+         speckled sand/mud and a plain silt bed -->
+    <texture name="sand_tex" type="2d" builtin="flat" mark="random" random="0.35"
+             rgb1="0.62 0.56 0.42" markrgb="0.40 0.36 0.27" width="512" height="512"/>
+    <material name="sand_mat" texture="sand_tex" texrepeat="12 12"/>
+    <texture name="mud_tex" type="2d" builtin="flat" mark="random" random="0.5"
+             rgb1="0.30 0.28 0.22" markrgb="0.18 0.17 0.13" width="512" height="512"/>
+    <material name="mud_mat" texture="mud_tex" texrepeat="8 8"/>
+    <material name="silt_mat" rgba="0.45 0.47 0.40 1"/>
+
+    <material name="rock_mat" rgba="0.35 0.33 0.30 1"/>
+    <material name="debris_mat" rgba="0.55 0.55 0.52 1"/>
+    <material name="weed_mat" rgba="0.20 0.35 0.15 1"/>
+  </asset>
+
+  <worldbody>
+    <!-- a second, fainter light so the bed is not lit from one fixed direction -->
+    <light name="fill" directional="true" dir="0.4 0.3 -1" diffuse="0.2 0.2 0.2" specular="0 0 0"/>
+    <!-- a 60 m bed, used in place of rov.xml's 10 m seabed in most samples so
+         that no straight bed edge is in view (generate.py picks one per sample) -->
+    <geom name="bed" type="plane" pos="0 0 -3" size="30 30 0.1" material="seabed_mat"
+          contype="0" conaffinity="0"/>
+
+    <body name="distractors">
+      <geom name="rock_0" type="ellipsoid" size="0.20 0.15 0.08" material="rock_mat" contype="0" conaffinity="0"/>
+      <geom name="rock_1" type="ellipsoid" size="0.20 0.15 0.08" material="rock_mat" contype="0" conaffinity="0"/>
+      <geom name="rock_2" type="ellipsoid" size="0.20 0.15 0.08" material="rock_mat" contype="0" conaffinity="0"/>
+      <geom name="rock_3" type="ellipsoid" size="0.20 0.15 0.08" material="rock_mat" contype="0" conaffinity="0"/>
+      <geom name="rock_4" type="ellipsoid" size="0.20 0.15 0.08" material="rock_mat" contype="0" conaffinity="0"/>
+      <geom name="rock_5" type="ellipsoid" size="0.20 0.15 0.08" material="rock_mat" contype="0" conaffinity="0"/>
+      <!-- blocks and slabs: straight edges, sometimes white like the pipe -->
+      <geom name="block_0" type="box" size="0.20 0.10 0.10" material="debris_mat" contype="0" conaffinity="0"/>
+      <geom name="block_1" type="box" size="0.20 0.10 0.10" material="debris_mat" contype="0" conaffinity="0"/>
+      <geom name="block_2" type="box" size="0.20 0.10 0.10" material="debris_mat" contype="0" conaffinity="0"/>
+      <!-- standing weed / rope: thin and long, the hardest negatives -->
+      <geom name="weed_0" type="capsule" size="0.012 0.3" material="weed_mat" contype="0" conaffinity="0"/>
+      <geom name="weed_1" type="capsule" size="0.012 0.3" material="weed_mat" contype="0" conaffinity="0"/>
+      <geom name="weed_2" type="capsule" size="0.012 0.3" material="weed_mat" contype="0" conaffinity="0"/>
+      <geom name="weed_3" type="capsule" size="0.012 0.3" material="weed_mat" contype="0" conaffinity="0"/>
+    </body>
+  </worldbody>
+</mujoco>

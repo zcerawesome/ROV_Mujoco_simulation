@@ -1,0 +1,10 @@
+numpy
+pandas
+mujoco
+mediapy
+opencv-python
+pillow
+depthai<3
+# only for training pipe_detector (running it needs just opencv + numpy)
+torch
+onnx
