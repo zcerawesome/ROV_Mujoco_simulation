@@ -24,12 +24,12 @@
     <default class="thruster_site">
       <site type="cylinder" size="0.004 0.012" rgba="1 0.85 0.1 0.9" group="1"/>
     </default>
-    <!-- 4" schedule-40 PVC: 0.055 m outer radius. Fittings are a size up. -->
+    <!-- 2" schedule-40 PVC: 0.0275 m outer radius. Fittings are a size up. -->
     <default class="pvc_pipe">
-      <geom type="cylinder" size="0.055" material="pvc_mat"/>
+      <geom type="cylinder" size="0.0275" material="pvc_mat"/>
     </default>
     <default class="pvc_fitting">
-      <geom type="cylinder" size="0.068" material="pvc_fitting_mat"/>
+      <geom type="cylinder" size="0.034" material="pvc_fitting_mat"/>
     </default>
   </default>
 
@@ -57,30 +57,44 @@
     <light directional="true" dir="-0.3 -0.4 -1" diffuse="0.55 0.55 0.55" specular="0.1 0.1 0.1"/>
     <geom name="seabed" type="plane" pos="0 0 -3" size="5 5 0.1" material="seabed_mat"/>
 
-    <!-- ================= PVC pipe run on the seabed =================
-         A static inspection target: two horizontal runs joined by an elbow,
-         then a second elbow into a short vertical riser with a flange.
-         Pipe axis sits one radius (0.055) above the seabed plane at z = -3. -->
-    <body name="pvc_pipe_run" pos="0 0 0">
-      <geom name="pvc_run_x" class="pvc_pipe" fromto="-1.40 -0.90 -2.945  1.20 -0.90 -2.945"/>
-      <geom name="pvc_run_y" class="pvc_pipe" fromto=" 1.20 -0.90 -2.945  1.20  0.60 -2.945"/>
-      <geom name="pvc_riser" class="pvc_pipe" fromto=" 1.20  0.60 -2.945  1.20  0.60 -2.250"/>
+    <!-- ================= PVC pipe cube on the seabed =================
+         A static inspection target: a 0.6 m cube frame of 12 pipes joined at
+         8 three-way corner fittings. The geoms below are written relative to a
+         frame centred at (0, 0) resting on the seabed (z = -3); the body pos
+         shifts it 2 m ahead of the ROV (+x), 0.5 m to its right (-y) and up to
+         z = 1.37 (0.35 m above the front camera), so it floats in the upper
+         right of the front camera's view. -->
+    <body name="pvc_pipe_cube" pos="2 -0.5 4.0425">
+      <!-- bottom square -->
+      <geom name="pvc_bot_front" class="pvc_pipe" fromto=" 0.30 -0.30 -2.9725   0.30  0.30 -2.9725"/>
+      <geom name="pvc_bot_back"  class="pvc_pipe" fromto="-0.30 -0.30 -2.9725  -0.30  0.30 -2.9725"/>
+      <geom name="pvc_bot_right" class="pvc_pipe" fromto="-0.30 -0.30 -2.9725   0.30 -0.30 -2.9725"/>
+      <geom name="pvc_bot_left"  class="pvc_pipe" fromto="-0.30  0.30 -2.9725   0.30  0.30 -2.9725"/>
 
-      <!-- elbows: spheres at the two corners hide the seams -->
-      <geom name="pvc_elbow_1" type="sphere" size="0.068" pos="1.20 -0.90 -2.945" material="pvc_fitting_mat"/>
-      <geom name="pvc_elbow_2" type="sphere" size="0.068" pos="1.20  0.60 -2.945" material="pvc_fitting_mat"/>
+      <!-- top square -->
+      <geom name="pvc_top_front" class="pvc_pipe" fromto=" 0.30 -0.30 -2.3725   0.30  0.30 -2.3725"/>
+      <geom name="pvc_top_back"  class="pvc_pipe" fromto="-0.30 -0.30 -2.3725  -0.30  0.30 -2.3725"/>
+      <geom name="pvc_top_right" class="pvc_pipe" fromto="-0.30 -0.30 -2.3725   0.30 -0.30 -2.3725"/>
+      <geom name="pvc_top_left"  class="pvc_pipe" fromto="-0.30  0.30 -2.3725   0.30  0.30 -2.3725"/>
 
-      <!-- slip couplings part way along each run -->
-      <geom name="pvc_coupling_1" class="pvc_fitting" fromto="-0.60 -0.90 -2.945  -0.44 -0.90 -2.945"/>
-      <geom name="pvc_coupling_2" class="pvc_fitting" fromto=" 0.44 -0.90 -2.945   0.60 -0.90 -2.945"/>
-      <geom name="pvc_coupling_3" class="pvc_fitting" fromto=" 1.20 -0.20 -2.945   1.20 -0.04 -2.945"/>
+      <!-- vertical uprights -->
+      <geom name="pvc_up_FR" class="pvc_pipe" fromto=" 0.30 -0.30 -2.9725   0.30 -0.30 -2.3725"/>
+      <geom name="pvc_up_FL" class="pvc_pipe" fromto=" 0.30  0.30 -2.9725   0.30  0.30 -2.3725"/>
+      <geom name="pvc_up_BR" class="pvc_pipe" fromto="-0.30 -0.30 -2.9725  -0.30 -0.30 -2.3725"/>
+      <geom name="pvc_up_BL" class="pvc_pipe" fromto="-0.30  0.30 -2.9725  -0.30  0.30 -2.3725"/>
 
-      <!-- capped open end, and a flange on top of the riser -->
-      <geom name="pvc_end_cap" class="pvc_fitting" fromto="-1.40 -0.90 -2.945  -1.24 -0.90 -2.945"/>
-      <geom name="pvc_flange" type="cylinder" size="0.105 0.015" pos="1.20 0.60 -2.235" material="pvc_fitting_mat"/>
+      <!-- three-way corner fittings: spheres at the 8 corners hide the seams -->
+      <geom name="pvc_corner_bFR" type="sphere" size="0.034" pos=" 0.30 -0.30 -2.9725" material="pvc_fitting_mat"/>
+      <geom name="pvc_corner_bFL" type="sphere" size="0.034" pos=" 0.30  0.30 -2.9725" material="pvc_fitting_mat"/>
+      <geom name="pvc_corner_bBR" type="sphere" size="0.034" pos="-0.30 -0.30 -2.9725" material="pvc_fitting_mat"/>
+      <geom name="pvc_corner_bBL" type="sphere" size="0.034" pos="-0.30  0.30 -2.9725" material="pvc_fitting_mat"/>
+      <geom name="pvc_corner_tFR" type="sphere" size="0.034" pos=" 0.30 -0.30 -2.3725" material="pvc_fitting_mat"/>
+      <geom name="pvc_corner_tFL" type="sphere" size="0.034" pos=" 0.30  0.30 -2.3725" material="pvc_fitting_mat"/>
+      <geom name="pvc_corner_tBR" type="sphere" size="0.034" pos="-0.30 -0.30 -2.3725" material="pvc_fitting_mat"/>
+      <geom name="pvc_corner_tBL" type="sphere" size="0.034" pos="-0.30  0.30 -2.3725" material="pvc_fitting_mat"/>
     </body>
 
-    <body name="base_link" pos="0 0 0">
+    <body name="base_link" pos="0 0 1">
       <freejoint name="root"/>
       <!-- Displaced volume of the geoms is 7.05e-3 m^3 -> 69.1 N of buoyancy at
            density 1000. Mass is set just under the 7.05 kg neutral point so the

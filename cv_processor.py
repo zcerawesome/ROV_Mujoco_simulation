@@ -12,17 +12,20 @@ def show(name, frame, bgr=True):
 def hsv_process(frame):
     hsv_frame = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV)
     # show('Camera', frame, bgr=False)
-    lower_white = (0, 0, 180)      # H: any, S: low, V: high
-    upper_white = (180, 40, 255)
+    lower_white = (0, 0, 60)      # H: any, S: low, V: high
+    upper_white = (180, 45, 255)
 
     mask = cv2.inRange(hsv_frame, lower_white, upper_white)
     return mask
 
 def morphological_clean(mask):
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-    opened = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-    closed = cv2.morphologyEx(opened, cv2.MORPH_CLOSE, kernel)
-    return closed
+    # kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    # opened = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+    # closed = cv2.morphologyEx(opened, cv2.MORPH_CLOSE, kernel)
+    # return closed
+    opened = cv2.morphologyEx(mask, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)))
+    # big close to re-join pipe segments that JPEG/shading break apart
+    return cv2.morphologyEx(opened, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_RECT, (25, 25)))
 
 def find_contours(mask):
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -32,8 +35,8 @@ def largest_valid_contour(contours, min_area, min_aspect):
     candidates = []
     for c in contours:
         area = cv2.contourArea(c)
-        # if area < min_area:
-        #     continue  # too small, likely noise
+        if area < min_area:
+            continue  # too small, likely noise
 
         x, y, w, h = cv2.boundingRect(c)
         aspect_ratio = max(w, h) / max(min(w, h), 1)
@@ -48,6 +51,11 @@ def largest_valid_contour(contours, min_area, min_aspect):
         best = max(candidates, key=cv2.contourArea)
     return best
 
+def get_dim(frame):
+    height, widht = frame.shape[:2]
+    cx, cy = 0.5, 0.5  # frame center as a 0-1 ratio of width/height
+    return cx, cy, widht, height
+
 def process_pipe(frame):
     hsv_mask = hsv_process(frame)
     metamorphasis = morphological_clean(hsv_mask)
@@ -60,10 +68,15 @@ def process_pipe(frame):
     best = largest_valid_contour(contours, MIN_AREA, MIN_ASPECT)
     overlay = frame.copy()
     if best is not None:
-        cv2.drawContours(overlay, [best], -1, (0, 255, 0), 2)
-        show('pipe', overlay, bgr=False)
-
-    show("meta", metamorphasis)
+        _, _, width, height = get_dim(overlay)
+        x, y, w, h = cv2.boundingRect(np.vstack(contours))
+        nx, ny = (x + w / 2) / width, (y + h /2 ) / height
+        nw, nh = w / width, h / height
+        cv2.rectangle(overlay, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        # show('pipe', overlay, bgr=False)
+        return overlay, nx, ny, nw, nh
+    return overlay, 0, 0, 0, 0
+    # show("meta", metamorphasis)
 
 def encode_jpeg(frame_rgb, quality=80):
     """Compress an RGB frame to JPEG bytes, for cheap accumulation in memory

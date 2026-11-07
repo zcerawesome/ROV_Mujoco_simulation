@@ -12,13 +12,15 @@ from PIL import Image
 import cv_processor as cvp
 from movement_sim import Movement
 from behavior.spin import Spin
+from behavior.docking import Docking
 
 class Goals(Enum):
     SPIN=1,
     SPIN_AROUND=2
     NOTHING = 3
+    DOCKING = 4
 
-GOAL = Goals.NOTHING
+GOAL = Goals.DOCKING
 
 class Controller:
     """TCP server. simulation.py connects to this as a client. Each exchange
@@ -89,6 +91,7 @@ if __name__ == "__main__":
     controller.start_server()
 
     # Fixed forward-drive command, sent automatically every step.
+    dock = Docking(0.25)
     MOVEMENT = (0, 0, 0, 0, 0, 0)
 
     print("Sending movement automatically (Ctrl+C to quit)")
@@ -99,7 +102,17 @@ if __name__ == "__main__":
             if frames is None:
                 print("simulation disconnected")
                 break
-            cvp.show("front", frames["front"], bgr=False)
+            # cvp.show("front", frames["down"], bgr=False)
+            if GOAL == Goals.DOCKING:
+                frame, x, y, w, h = cvp.process_pipe(frames['down'])
+                cvp.show('pipe', frames['down'], bgr=False)
+                MOVEMENT = dock.process(frames)
+                # print(w * h)
+                # if w * h < 0.2:
+                #     MOVEMENT = (0, 0, -1, 0, 0, 0)
+                # else:
+                #     MOVEMENT = (0, 0, 0, 0, 0, 0)
+
     except KeyboardInterrupt:
         pass
     except (ConnectionResetError, BrokenPipeError):
