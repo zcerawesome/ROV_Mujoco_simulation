@@ -1,6 +1,7 @@
 .venv
 .claude
-*__pycache__pipe_detector/data*/
+*__pycache__
+pipe_detector/data*/
 pipe_detector/runs/
 pipe_detector/*.log
 pipe_detector/pool_scene.xml
