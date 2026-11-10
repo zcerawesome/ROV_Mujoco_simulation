@@ -56,7 +56,26 @@ def get_dim(frame):
     cx, cy = 0.5, 0.5  # frame center as a 0-1 ratio of width/height
     return cx, cy, widht, height
 
+_detector = None
+
 def process_pipe(frame):
+    """Find the pipe with the learned CNN (pipe_detector/). Same return as the
+    HSV version below: (overlay, cx, cy, w, h), centre and size as 0-1
+    fractions of the frame, or (overlay, 0, 0, 0, 0) if no pipe is seen."""
+    global _detector
+    if _detector is None:
+        from pipe_detector.detector import PipeDetector
+        _detector = PipeDetector()
+    det = _detector.detect(frame)
+    overlay = _detector.draw(frame, det)
+    if det is None:
+        return overlay, 0, 0, 0, 0
+    height, width = frame.shape[:2]
+    x0, y0, x1, y1 = det["box"]
+    return overlay, (x0 + x1) / 2 / width, (y0 + y1) / 2 / height, (x1 - x0) / width, (y1 - y0) / height
+
+def process_pipe_hsv(frame):
+    """The original colour-threshold detector, kept for comparison."""
     hsv_mask = hsv_process(frame)
     metamorphasis = morphological_clean(hsv_mask)
     contours = find_contours(metamorphasis)

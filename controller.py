@@ -104,8 +104,9 @@ if __name__ == "__main__":
                 break
             # cvp.show("front", frames["down"], bgr=False)
             if GOAL == Goals.DOCKING:
-                frame, x, y, w, h = cvp.process_pipe(frames['down'])
-                cvp.show('pipe', frames['down'], bgr=False)
+                front_box = cvp.process_pipe(frames['front'])[0]
+                down_box = cvp.process_pipe(frames['down'])[0]
+                cvp.show('pipe (front | down)', np.hstack([front_box, down_box]), bgr=False)
                 MOVEMENT = dock.process(frames)
                 # print(w * h)
                 # if w * h < 0.2:
