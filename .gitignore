@@ -5,3 +5,7 @@ pipe_detector/data*/
 pipe_detector/runs/
 pipe_detector/*.log
 pipe_detector/pool_scene.xml
+*.pt
+recordings/
+core/
+.vscode/
